@@ -1,0 +1,6 @@
+{
+  "name": "Blees Yoga",
+  "description": "Private yoga sessions with Akshay Chotara — personalised, purposeful, and transformative.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

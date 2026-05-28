@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net default-deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow reading of connection test document
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // --- REUSABLE HARDENED GLOBAL HELPERS ---
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    
+    function incoming() { 
+      return request.resource.data; 
+    }
+    
+    function existing() { 
+      return resource.data; 
+    }
+    
+    function isSignedIn() { 
+      return request.auth != null; 
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'akshayyoga1@gmail.com';
+    }
+
+    // --- VALIDATION BLUEPRINTS ---
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.email is string && data.email.size() > 0 && data.email.size() <= 200 &&
+             data.phone is string && data.phone.size() >= 0 && data.phone.size() <= 50;
+    }
+
+    function isValidBooking(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.packageName is string && data.packageName.size() > 0 && data.packageName.size() <= 200 &&
+             data.sessions is int &&
+             data.price is int &&
+             data.clientName is string && data.clientName.size() > 0 && data.clientName.size() <= 200 &&
+             data.clientEmail is string && data.clientEmail.size() > 0 && data.clientEmail.size() <= 200 &&
+             data.clientPhone is string && data.clientPhone.size() > 0 && data.clientPhone.size() <= 50 &&
+             data.selectedDate is string && data.selectedDate.size() > 0 && data.selectedDate.size() <= 50 &&
+             data.selectedTime is string && data.selectedTime.size() > 0 && data.selectedTime.size() <= 100 &&
+             data.status is string && (data.status == 'confirmed' || data.status == 'cancelled') &&
+             data.bookingType is string && data.bookingType.size() > 0 && data.bookingType.size() <= 100;
+    }
+
+    function isValidInstructor(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.role is string && data.role.size() > 0 && data.role.size() <= 200 &&
+             data.photoUrl is string && data.photoUrl.size() <= 1200000 &&
+             data.bio1 is string && data.bio1.size() > 0 && data.bio1.size() <= 1000 &&
+             data.bio2 is string && data.bio2.size() > 0 && data.bio2.size() <= 1000 &&
+             data.bio3 is string && data.bio3.size() > 0 && data.bio3.size() <= 1000 &&
+             data.usePhotoUrlAsDefault is bool &&
+             data.updatedAt == request.time;
+    }
+
+    // --- USERS COLLECTION RULES ---
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && 
+                      isValidUser(incoming()) && 
+                      incoming().createdAt == request.time && 
+                      incoming().uid == request.auth.uid;
+      allow update: if isOwner(userId) && 
+                      isValidUser(incoming()) && 
+                      incoming().createdAt == existing().createdAt && 
+                      incoming().uid == existing().uid && 
+                      incoming().updatedAt == request.time;
+    }
+
+    // --- BOOKINGS COLLECTION RULES ---
+    match /bookings/{bookingId} {
+      allow get: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow create: if isSignedIn() && 
+                      isValidBooking(incoming()) && (
+                        incoming().userId == request.auth.uid || isAdmin()
+                      ) &&
+                      incoming().createdAt == request.time;
+                      
+      allow update: if isSignedIn() && isValidBooking(incoming()) && (
+                      (existing().userId == request.auth.uid && (
+                        // Action: Cancel Booking (Only allowing mutation of status and updatedAt)
+                        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+                        incoming().status == 'cancelled' &&
+                        incoming().updatedAt == request.time
+                      )) || (
+                        isAdmin() &&
+                        incoming().updatedAt == request.time
+                      )
+                    );
+                      
+      allow delete: if isAdmin();
+    }
+
+    // --- SETTINGS COLLECTION RULES ---
+    match /settings/{settingId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && 
+                             (settingId == 'instructor' ? isValidInstructor(incoming()) : true);
+      allow delete: if isAdmin();
+    }
+  }
+}
