@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import akshayPhoto from "../assets/akshay.jpeg"
 import { 
   Instagram, 
   MessageSquare, 
@@ -782,34 +783,15 @@ export default function App() {
             </div>
 
             {/* Banner Block with Yogi representing Instructor */}
-            <div className="border border-gold/15 bg-white rounded-2xl p-8 sm:p-10 py-10 text-center space-y-6 max-w-lg mx-auto shadow-sm">
-              {/* Floating yoga emoji icon representing the instructor, matching the trial session style and size exactly */}
-              <div className="pt-2 flex justify-center">
-                <motion.div 
-                  animate={{ 
-                    y: [0, -6, 0],
-                    rotate: [0, 2, -2, 0] 
-                  }}
-                  transition={{ 
-                    duration: 4, 
-                    repeat: Infinity, 
-                    ease: "easeInOut" 
-                  }}
-                  className="w-14 h-14 rounded-full bg-gold/10 flex items-center justify-center text-3xl shadow-sm border border-gold/25 cursor-default"
-                >
-                  🧘‍♀️
-                </motion.div>
-              </div>
-
-              <div className="space-y-1.5">
-                <h3 className="text-2xl sm:text-3xl font-serif text-charcoal font-semibold">
-                  {instructorProfile.name}
-                </h3>
-                <span className="text-[10px] sm:text-[11px] font-sans font-bold tracking-[0.25em] text-gold uppercase block">
-                  {instructorProfile.role}
-                </span>
-              </div>
-            </div>
+            <div className="flex justify-center">
+  <div className="w-75 h-99 flex justify-end">
+  <img
+    src={akshayPhoto}
+    alt="Akshay"
+    className="w-99 object-cover rounded-xl"
+  />
+</div>
+</div>
 
             {/* Detailed Philosophy Copy */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start max-w-4xl mx-auto pt-6 border-t border-gold/10">
